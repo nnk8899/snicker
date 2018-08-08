@@ -1,7 +1,27 @@
 import datetime
 from flask import Flask
 from flask_restful import reqparse, abort, Api, Resource
+import pymssql
 
+
+
+
+def link_sql():
+	host = 'LAPTOP-GPKFSA00'
+	user = 'sa'
+	password = 'xyt555'
+	database = 'lazy'
+	conn = pymssql.connect(host, user, password, database,charset='cp936')
+	return conn
+
+def broadcast(ip):
+	import pyttsx3
+	import win32com
+	speaker = pyttsx3.init()
+	u = '欧巴~'+str(ip)+'需要士力架!'
+	speaker.say(u)
+	speaker.runAndWait()
+		
 
 
 app = Flask(__name__)
@@ -51,19 +71,20 @@ class IPList(Resource):
 
 
 class Alarm(Resource):
-    def put(self, ip_id):
-        newtime = datetime.datetime.now()
-        fp = open("alarm.log", "at")
-        fp.write(ip_id + " 10 mins not move detected at %s\n" % newtime)
-        fp.close()
-        import pyttsx3
-        import win32com
-        speaker = pyttsx3.init()
-        u = '欧巴~有人需要士力架!'
-        speaker.say(u)
-        speaker.runAndWait()
-        IPs[ip_id] = str(newtime)
-        return ip_id, 201
+	def put(self, ip_id):
+		newtime = datetime.datetime.now()
+		fp = open("alarm.log", "at")
+		fp.write(ip_id + " 10 mins not move detected at %s\n" % newtime)
+		fp.close()
+		conn = link_sql()
+		cursor = conn.cursor()
+		sql = "insert into [dbo].[lazyrec] values('"+ip_id+"',"+str(newtime.year)+','+str(newtime.month)+','+str(newtime.day)+','+str(newtime.hour)+','+str(newtime.minute)+','+str(newtime.second)+')'
+		cursor.execute(sql)
+		conn.commit()
+		conn.close()
+		broadcast(ip=ip_id)
+		IPs[ip_id] = str(newtime)
+		return ip_id, 201
 
 
 #
